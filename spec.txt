@@ -1,0 +1,22 @@
+wst and rst
+can access pc and both stack pointers
+
+8: wsp rsp st
+16: pc
+
+Like Uxn But Better
+
+default memory map: 
+page 00: zero page
+page 01: wst
+page 02: rst
+pages 03..=fe: working memory
+page ff: devices
+
+program start is 0300
+
+stacks grow down, pointer is at next unnocupied space
+
+kr2ooooo
+
+8 devices, 32 bytes of io each

@@ -1,0 +1,32 @@
+op   modes
+NOP  
+SEC
+CLC
+EXT
+POP  r2
+SWP  r2
+ROT  r2
+DUP  r2
+OVR  r2
+EQU  kr2
+GTH  kr2
+JMP  kr2
+JNZ  kr2
+JSR  kr2
+STH  kr2
+LDZ  kr2
+STZ  kr2
+LDR  kr2
+STR  kr2
+LDA  kr2
+STA  kr2
+PIC  kr2
+PUT  kr2
+ADC  kr2
+SBC  kr2
+MUL  kr2
+DVM  kr2
+AND  kr2
+IOR  kr2
+XOR  kr2
+SFT  kr2

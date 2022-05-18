@@ -19,6 +19,8 @@ AVC2 is a stack-based system. It possesses 4 registers, although none are availa
 
 The two stack pointers correspond to two stacks in memory. The working stack SHOULD be located in the 0x0100 - 0x01ff page, and the return stack SHOULD be located in the 0x0200 - 0x02ff page. Both stacks MUST grow downwards. The 0x0000 - 0x00ff page is the zero page. The 0xff00 - 0xffff page is dedicated to memory-mapped device I/O. The CPU MUST jump to the program start point (which SHOULD be 0x0300) upon starting.
 
+The status register is currently only used for the carry/inverse borrow flag (bit 0). Future versions of the specification may define other flags.
+
 AVC2 is big-endian, which is to say the most significant byte of a multi-byte number (such as an address) is stored in the lower memory location. When pushing a 16-bit value to the stack, the low byte is pushed first, such that the value is oriented correctly in memory.
 
 Values are unsigned unless otherwise mentioned. Signed values use 2's complement representation.
@@ -71,7 +73,14 @@ If the keep mode bit is set on a stack primitive, it becomes a NOP. The byte tha
 
 ### Arithmetic
 
-- `ADC`: 
+- `ADC`: Pop two values and add them, then add 1 if the carry flag is set. If the calculation overflows, set the carry flag. Otherwise unset it. Push the result to the stack.
+- `SBC`: Pop a and b. Subtract a from b. If the carry flag is NOT set, subtract 1. If the calculation underflows, unset the carry flag. Otherwise set it. Push the result to the stack.
+- `MUL`: Pop a and b. Push a * b.
+- `DVM`: Pop a and b. Push b / a, then push b % a (b modulo a).
+- `AND`: Pop a and b. Push a & b.
+- `IOR`: Pop a and b. Push a | b.
+- `XOR`: Pop a and b. Push a ^ b.
+- `SFT`: Pop a value from the stack. The upper nybble is the shift left, and the lower nybble is the shift right. Pop another value and bitshift it by those amounts, shifting left first.
 
 ### Literals
 
@@ -83,7 +92,24 @@ The `LIT` opcode occupies the keep mode of the null byte (if that makes any sens
 
 ## Device I/O
 
+Memory-mapped I/O takes place in the top page of memory. Each device has 16 bytes of I/O space. The first byte MUST return the device ID, a value in the range [2, 240] that corresponds to the device type, when read. The first device (in the range 0xff00 - 0xff0f) MUST be the system device, defined below. Currently only one device is defined (the system device).
 
+Devices MAY use multi-byte ports. Devices MAY modify their internal state on read.
+
+### The system device
+
+This device is used to allow the processor to control itself, and to perform a few functions impossible with pure code.
+
+|Port|Function|
+|---|---|
+|0 DEVID|Returns 1 when read|
+|1 WAIT|When written to, suspend the CPU for that number of ms|
+|2 RANDOM|When read, returns a random number in the range [0, 256). The generator does not need to be cryptographically secure|
+|8 STDIN|When read, returns a byte from the terminal input, or 0x00 if no bytes are present in the buffer|
+|9 STDOUT|When written to, send a byte to the standard output terminal|
+|a STDERR|When written to, send a byte to the standard error terminal. This MAY be the same as the standard output|
+|b BUFLEN|When read, returns the size of the input buffer, or 0xff if the length of the buffer is greater than 0xff|
+|f HALT|When written to, immediately halt the CPU|
 
 ## Conventions
 

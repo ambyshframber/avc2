@@ -34,7 +34,7 @@ impl Mem {
         }
     }
     pub fn set(&mut self, idx: u16, val: u8) {
-        println!("CELL {:04x} SET TO {:02x}", idx, val);
+        //println!("CELL {:04x} SET TO {:02x}", idx, val);
         if idx < MEM_SIZE {
             self.main[idx as usize] = val
         }

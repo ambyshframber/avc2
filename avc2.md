@@ -1,14 +1,14 @@
 # AVC2 formal specification
 
-The following is the specification for any emulator of the AVC2 VCPU. It is NOT the documentation 
+The following is the specification for any emulator of the AVC2 VCPU. It is NOT the documentation for the reference implementation, also contained within this repository.
 
-## Preface
+## 1: Preface
 
 AVC2 is a virtual CPU, inspired by the Uxn/Varvara platform. It is intended to be complex enough to allow high-level work and support indefinite extensions, but still simple enough to not hamper its educational or enternainment value. It is presented as a fun toy or a set of problems to solve, rather than a serious development platform.
  
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and "OPTIONAL" in this document are to be interpreted as described in [IETF RFC 2119](https://datatracker.ietf.org/doc/html/rfc2119).
 
-## Processor and memory structure
+## 2: Processor and memory structure
 
 AVC2 is a stack-based system. It possesses 4 registers, although none are available through the usual method. The registers are as follows:
 
@@ -19,13 +19,15 @@ AVC2 is a stack-based system. It possesses 4 registers, although none are availa
 
 The two stack pointers correspond to two stacks in memory. The working stack SHOULD be located in the 0x0100 - 0x01ff page, and the return stack SHOULD be located in the 0x0200 - 0x02ff page. Both stacks MUST grow downwards. The 0x0000 - 0x00ff page is the zero page. The 0xff00 - 0xffff page is dedicated to memory-mapped device I/O. The CPU MUST jump to the program start point (which SHOULD be 0x0300) upon starting.
 
+The status of uninitialised memory is undefined.
+
 The status register is currently only used for the carry/inverse borrow flag (bit 0). Future versions of the specification may define other flags.
 
 AVC2 is big-endian, which is to say the most significant byte of a multi-byte number (such as an address) is stored in the lower memory location. When pushing a 16-bit value to the stack, the low byte is pushed first, such that the value is oriented correctly in memory.
 
 Values are unsigned unless otherwise mentioned. Signed values use 2's complement representation.
 
-## Instructions
+## 3: Instructions
 
 AVC2 instructions consist of a 5-bit opcode and 3 mode bits. The modes are k, r, and 2, which mean "keep", "return" and "double width" respectively.
 
@@ -35,9 +37,11 @@ Return operates on the return stack directly, or if an opcode already operates o
 
 Double width uses 16-bit values from the stack (in most cases).
 
-### Stack primitives
+See also the opcode table contained in this repository.
 
-If the keep mode bit is set on a stack primitive, it becomes a NOP. The byte that would correspond to `POPk` (0x83) is instead used for `RTI` (see "Odds and ends" section).
+### 3.1: Stack primitives
+
+If the keep mode bit is set on a stack primitive, it becomes a NOP. The byte that would correspond to `POPk` (0x83) is instead used for `RTI` (see section 3.6).
 
 - `POP`: Remove the top value from the stack.
     `a b c -- a b`
@@ -50,7 +54,7 @@ If the keep mode bit is set on a stack primitive, it becomes a NOP. The byte tha
 - `OVR`: Take the second item of the stack and push it to the top.
     `a b c -- a b c b`
 
-### Logic and jumps
+### 3.2: Logic and jumps
 
 - `EQU`: Compare the top two values of the stack for equality. If they are equal, push true (0xff). If they are not, push false (0x00).
 - `GTH`: Pop b and a. If a is greater than b, push true. Otherwise, push false. This opcode MUST compare signed values.
@@ -60,7 +64,7 @@ If the keep mode bit is set on a stack primitive, it becomes a NOP. The byte tha
 - `JSR`: Identical to JMP, except that before jumping, the` value of the program counter is pushed to the return stack.
 - `STH`: Move a value from the working stack to the return stack. Does the inverse in return mode.
 
-### Memory accesses
+### 3.3: Memory accesses
 
 - `LDZ`: Pop an 8-bit value from the stack. Get the value in the zero page at that address and push it to the stack.
 - `STZ`: Pop an 8-bit value from the stack. Pop another value from the stack and store it at that address in the zero page.
@@ -71,7 +75,7 @@ If the keep mode bit is set on a stack primitive, it becomes a NOP. The byte tha
 - `PIC`: Pop an 8-bit value from the stack. Add it to the stack pointer, get the value at that address, and push it to the stack.
 - `PUT`: Pop an 8 bit value from the stack. Add it to the stack pointer to get an address. Pop another value from the stack. Store that value at the address.
 
-### Arithmetic
+### 3.4: Arithmetic
 
 - `ADC`: Pop two values and add them, then add 1 if the carry flag is set. If the calculation overflows, set the carry flag. Otherwise unset it. Push the result to the stack.
 - `SBC`: Pop a and b. Subtract a from b. If the carry flag is NOT set, subtract 1. If the calculation underflows, unset the carry flag. Otherwise set it. Push the result to the stack.
@@ -82,23 +86,23 @@ If the keep mode bit is set on a stack primitive, it becomes a NOP. The byte tha
 - `XOR`: Pop a and b. Push a ^ b.
 - `SFT`: Pop a value from the stack. The upper nybble is the shift left, and the lower nybble is the shift right. Pop another value and bitshift it by those amounts, shifting left first.
 
-### Literals
+### 3.5: Literals
 
 The `LIT` opcode occupies the keep mode of the null byte (if that makes any sense). It takes the next byte (or 16-bit word in 16-bit mode) and pushes it to the stack.
 
-### Odds and ends
+### 3.6: Odds and ends
 
 `SEC` and `CLC` are used to set and clear the carry flag, respectively. `RTI` pops a value from the stack and places it in the status register, then pops a 16-bit word from the return stack and jumps to it. This is used to return from device interrupts. `EXT` pushes 0 to the stack. This will later be used to determine what processor instruction set extensions are enabled. None of these have any modes available. 
 
-## Device I/O
+## 4: Device I/O
 
-Memory-mapped I/O takes place in the top page of memory. Each device has 16 bytes of I/O space. The first byte MUST return the device ID, a value in the range [2, 240] that corresponds to the device type, when read. The first device (in the range 0xff00 - 0xff0f) MUST be the system device, defined below. Currently only one device is defined (the system device).
+Memory-mapped I/O takes place in the top page of memory. Each device has 16 bytes of I/O space. The first byte MUST return the device ID, a value in the range [1, 240] that corresponds to the device type, when read. The first device (in the range 0xff00 - 0xff0f) MUST be the system device, defined below. Currently only one device is defined (the system device).
 
-Devices MAY use multi-byte ports. Devices MAY modify their internal state on read.
+Devices MAY use multi-byte ports. Devices MAY modify their internal state on read. If a cell in the device page is read, but no device is using it for a port, it MUST return 0.
 
-### The system device
+### 4.1: The system device
 
-This device is used to allow the processor to control itself, and to perform a few functions impossible with pure code.
+This device is used to allow the processor to control itself, and to perform a few functions impossible with pure code. The device MUST buffer terminal input such that reads of STDIN are non-blocking. The device SHOULD NOT have local terminal echo.
 
 |Port|Function|
 |---|---|
@@ -113,4 +117,6 @@ This device is used to allow the processor to control itself, and to perform a f
 
 ## Conventions
 
+## Assembled ROM format
 
+The first 4 bytes of the rom are the magic number. Version 1 ROMs have the magic number `41 56 43 00` (hex). Any file without this header is an invalid Version 1 ROM.

@@ -51,7 +51,7 @@ impl Device for System {
                 self.stderr.write(&[val]).unwrap();
                 self.stderr.flush().unwrap();
             }
-            0xf => panic!(), // halt (lol)
+            0xf => std::process::exit(0), // halt (lol)
             _ => {}
         }
     }

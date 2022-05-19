@@ -32,9 +32,9 @@ impl Processor {
 
     #[wrappit]
     fn execute(&mut self, instr: u8) {
-        println!("EXEC {:02x}", instr);
-        println!("WSP AT {:04x}", self.wsp);
-        println!("RSP AT {:04x}", self.rsp);
+        //println!("EXEC {:02x}", instr);
+        //println!("WSP AT {:04x}", self.wsp);
+        //println!("RSP AT {:04x}", self.rsp);
         let k = instr & 0x80 != 0; // keep
         let r = instr & 0x40 != 0; // return stack
         let d = instr & 0x20 != 0; // double width
@@ -188,7 +188,7 @@ impl Processor {
                     }
                 }
                 else { // rel jumps
-                    let mut ofs = if k {
+                    let ofs = if k {
                         self.pick(0, r)
                     }
                     else {
@@ -413,7 +413,7 @@ impl Processor {
 
     #[wrappit]
     fn push(&mut self, val: u8, is_rst: bool) {
-        println!("PUSHING {:02x}", val);
+        //println!("PUSHING {:02x}", val);
         let idx = if is_rst {
             let idx = (self.rsp as u16) + RST_START;
             self.rsp -= 1;

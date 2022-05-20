@@ -16,7 +16,7 @@ fn main() {
         read(&a[1]).unwrap()
     };
     if &rom[..4] != &[0x41, 0x56, 0x43, 0x00] {
-        panic!()
+        panic!("bad signature!")
     }
     let mut p = Processor::new(&rom[4..]);
     loop {

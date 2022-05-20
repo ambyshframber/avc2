@@ -1,6 +1,7 @@
-use std::fs::File;
+#[allow(unused_imports)]
 use std::io::{Read, Write, stdout, stderr, Stdout, Stderr};
 use super::Device;
+use rand::{thread_rng, Rng};
 
 /// SYSTEM DEVICE
 /// 
@@ -22,10 +23,7 @@ pub struct System {
 
 impl System {
     pub fn new() -> Self { 
-        let mut random = File::open("/dev/urandom").unwrap();
-        let mut lfsr = [0u8; 2];
-        random.read_exact(&mut lfsr).unwrap();
-        let lfsr = u16::from_be_bytes(lfsr);
+        let lfsr = thread_rng().gen_range(1..65535);
         System {
             lfsr,
             stdout: stdout(),

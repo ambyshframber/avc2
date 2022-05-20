@@ -7,6 +7,7 @@ pub struct DevicePage {
 }
 
 impl DevicePage {
+    #[allow(unused_variables)]
     pub fn new(devs_to_use: Vec<(u16, u8)>) -> DevicePage {
         let mut devs:[Option<Box<dyn Device>>; 16]  = [0; 16].map(|_| None);
         devs[0] = Some(Box::new(System::new()));

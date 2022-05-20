@@ -10,6 +10,7 @@ pub struct Mem {
 }
 
 impl Mem {
+    #[allow(dead_code)]
     pub fn new() -> Mem {
         Self::new_from_rom(&[0; MEM_SIZE as usize])
     }
@@ -34,7 +35,7 @@ impl Mem {
         }
     }
     pub fn set(&mut self, idx: u16, val: u8) {
-        //println!("CELL {:04x} SET TO {:02x}", idx, val);
+        //eprintln!("CELL {:04x} SET TO {:02x}", idx, val);
         if idx < MEM_SIZE {
             self.main[idx as usize] = val
         }

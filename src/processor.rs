@@ -32,22 +32,32 @@ impl Processor {
 
     #[wrappit]
     fn execute(&mut self, instr: u8) {
-        //println!("EXEC {:02x}", instr);
-        //println!("WSP AT {:04x}", self.wsp);
+        //eprintln!("PC AT {:04x}", self.pc);
+        //eprintln!("EXEC {:02x}", instr);
+        //eprintln!("WSP AT {:04x}", (self.wsp as u16) + WST_START);
         //println!("RSP AT {:04x}", self.rsp);
         let k = instr & 0x80 != 0; // keep
         let r = instr & 0x40 != 0; // return stack
         let d = instr & 0x20 != 0; // double width
         let op = instr & 0b11111;
 
+        if instr == 0xff {
+            panic!("emergency debug exit")
+        }
+
         match op { // instruction decode
             0 => { // lit and extras
                 if k { // LIT
                     self.pc += 1;
-                    let [hb, lb] = self.mem.get_16(self.pc).to_be_bytes(); // get a 16, and only push lb if in 16 bit mode
+                    let v = self.mem.get_16(self.pc); // get a 16, and only push lb if in 16 bit mode
+                    let [hb, lb] = v.to_be_bytes();
                     if d {
+                        //eprintln!("LIT2 {:04x}", v);
                         self.push(lb, r); // lb
                         self.pc += 1
+                    }
+                    else {
+                        //eprintln!("LIT {:02x}", hb)
                     }
                     self.push(hb, r)
                 }
@@ -73,21 +83,22 @@ impl Processor {
                         let c = self.pop_16(r);
                         let b = self.pop_16(r);
                         let a = self.pop_16(r);
+                        //eprintln!("{:04x} {:04x} {:04x}", a, b, c);
                         match op {
                             3 => { // POP
                                 self.push_16(b, r); self.push_16(a, r);
                             }
                             4 => { // SWP
-                                self.push_16(b, r); self.push_16(c, r); self.push_16(a, r);
+                                self.push_16(a, r); self.push_16(c, r); self.push_16(b, r);
                             }
                             5 => { // ROT
-                                self.push_16(c, r); self.push_16(a, r); self.push_16(b, r);
+                                self.push_16(b, r); self.push_16(a, r); self.push_16(c, r);
                             }
                             6 => { // DUP
-                                self.push_16(c, r); self.push_16(c, r); self.push_16(b, r); self.push_16(a, r);
+                                self.push_16(a, r); self.push_16(b, r); self.push_16(c, r); self.push_16(c, r);
                             }
                             7 => { // OVR
-                                self.push_16(b, r); self.push_16(c, r); self.push_16(b, r); self.push_16(a, r);
+                                self.push_16(a, r); self.push_16(b, r); self.push_16(c, r); self.push_16(b, r);
                             }
                             0xd => { // STH
                                 self.push_16(a, r); self.push_16(b, r); self.push_16(c, !r);
@@ -101,19 +112,19 @@ impl Processor {
                         let a = self.pop(r);
                         match op {
                             3 => { // POP
-                                self.push(b, r); self.push(a, r);
+                                self.push(a, r); self.push(b, r);
                             }
                             4 => { // SWP
-                                self.push(b, r); self.push(c, r); self.push(a, r);
+                                self.push(a, r); self.push(c, r); self.push(b, r);
                             }
                             5 => { // ROT
-                                self.push(c, r); self.push(a, r); self.push(b, r);
+                                self.push(b, r); self.push(a, r); self.push(c, r);
                             }
                             6 => { // DUP
-                                self.push(c, r); self.push(c, r); self.push(b, r); self.push(a, r);
+                                self.push(a, r); self.push(b, r); self.push(c, r); self.push(c, r);
                             }
                             7 => { // OVR
-                                self.push(b, r); self.push(c, r); self.push(b, r); self.push(a, r);
+                                self.push(a, r); self.push(b, r); self.push(c, r); self.push(b, r);
                             }
                             0xd => { // STH
                                 self.push(a, r); self.push(b, r); self.push(c, !r);
@@ -203,6 +214,7 @@ impl Processor {
                             else {
                                 self.pop(r)
                             };
+                            //eprintln!("JNZ {:02x}", cond);
                             cond != 0 // jump not zero
                         }
                         _  => true
@@ -213,39 +225,85 @@ impl Processor {
                     
                     let dest = self.get_pc_offset(ofs); 
                     if will_jump {
+                        //eprintln!("JUMPING TO {:04x}", dest);
                         self.pc = dest
                     }
                 }
             }
 
             0x10..=0x15 => { // memory accessing
-                let addr = match op {
-                    0x10..=0x11 => { // zpg
-                        self.pop(r) as u16
+                let mut is_abs = false;
+                let addr = if !k {
+                    match op {
+                        0x10..=0x11 => { // zpg
+                            self.pop(r) as u16
+                        }
+                        0x12..=0x13 => { // rel
+                            let ofs = self.pop(r);
+                            self.get_pc_offset(ofs)
+                        }
+                        _ => { // absolute
+                            is_abs = true;
+                            self.pop_16(r)
+                        }
                     }
-                    0x12..=0x13 => { // rel
-                        let ofs = self.pop(r);
-                        self.get_pc_offset(ofs)
-                    }
-                    _ => { // absolute
-                        self.pop_16(r)
+                }
+                else {
+                    match op {
+                        0x10..=0x11 => { // zpg
+                            self.pick(0, r) as u16
+                        }
+                        0x12..=0x13 => { // rel
+                            let ofs = self.pick(0, r);
+                            self.get_pc_offset(ofs)
+                        }
+                        _ => { // absolute
+                            self.pick_16(0, r)
+                        }
                     }
                 };
+                //eprintln!("DIRECT MEM ACCESS AT {:04x}", addr);
                 // all even values are load
                 if op & 0b1 == 0 { // load
-                    let [hb, lb] = self.mem.get_16(addr).to_be_bytes();
+                    let v = self.mem.get_16(addr);
+                    let [hb, lb] = v.to_be_bytes();
                     if d {
-                        self.push(lb, r)
+                        //eprintln!("LOAD {:04x}", v);
+                        self.push(lb, r); // lb
+                        self.pc += 1
+                    }
+                    else {
+                        //eprintln!("LOAD {:02x}", hb)
                     }
                     self.push(hb, r)
                 }
                 else { // store
                     if d {
-                        let v = self.pop_16(r);
+                        let v = if !k {
+                            self.pop_16(r)
+                        }
+                        else {
+                            if is_abs {
+                                self.pick_16(2, r)
+                            }
+                            else {
+                                self.pick_16(1, r)
+                            }
+                        };
                         self.mem.set_16(addr, v)
                     }
                     else {
-                        let v = self.pop(r);
+                        let v = if !k {
+                            self.pop(r)
+                        }
+                        else {
+                            if is_abs {
+                                self.pick(2, r)
+                            }
+                            else {
+                                self.pick(1, r)
+                            }
+                        };
                         self.mem.set(addr, v)
                     }
                 }
@@ -391,6 +449,10 @@ impl Processor {
             _ => {} // nop
         }
 
+        /*for i in (self.wsp as u16) + WST_START + 1..WST_START + 0x100 {
+            eprint!("{:02x} ", self.mem.get(i))
+        }
+        eprintln!("");*/
         self.pc += 1;
     }
 
@@ -398,10 +460,10 @@ impl Processor {
         let ofs = ofs as i8;
         let neg = ofs < 0;
         if neg {
-            (ofs * -1) as u16
+            self.pc - (ofs * -1) as u16
         }
         else {
-            ofs as u16
+            self.pc + ofs as u16
         }
     }
 
@@ -436,7 +498,9 @@ impl Processor {
             self.wsp += 1;
             (self.wsp as u16) + WST_START
         };
-        self.mem.get(idx)
+        let val = self.mem.get(idx);
+        //println!("POPPING {:02x}", val);
+        val
     }
     fn push_16(&mut self, val: u16, is_rst: bool) {
         let [hb, lb] = val.to_be_bytes();

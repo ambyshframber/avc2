@@ -1,6 +1,6 @@
 # AVC2 formal specification
 
-The following is the specification for any emulator of the AVC2 VCPU. It is NOT the documentation for the reference implementation, also contained within this repository.
+The following is the version 1 specification for any emulator of the AVC2 VCPU. It is NOT the documentation for the reference implementation, also contained within this repository.
 
 ## 1: Preface
 
@@ -29,35 +29,39 @@ Values are unsigned unless otherwise mentioned. Signed values use 2's complement
 
 ## 3: Instructions
 
-AVC2 instructions consist of a 5-bit opcode and 3 mode bits. The modes are k, r, and 2, which mean "keep", "return" and "double width" respectively.
+AVC2 instructions consist of a 5-bit opcode and 3 mode bits. The modes are k, r, and 2, which mean "keep", "return" and "double width" respectively. The layout in memory is as follows:
+
+```
+kr2ooooo
+```
 
 Keep does not consume values from the stack. It uses the values on the stack, but does not move the stack pointer upwards. For example, ADD would turn `01 02` into `03` but ADDk would turn it into `01 02 03`
 
 Return operates on the return stack directly, or if an opcode already operates on both stacks, it switches their positions.
 
-Double width uses 16-bit values from the stack (in most cases).
+Double width uses 16-bit values from the stack (in most cases). If the size of a value is not given, it is defined by the presence of this mode.
 
 See also the opcode table contained in this repository.
 
 ### 3.1: Stack primitives
 
-If the keep mode bit is set on a stack primitive, it becomes a NOP. The byte that would correspond to `POPk` (0x83) is instead used for `RTI` (see section 3.6).
+If the keep mode bit is set on a stack primitive, the behaviour is undefined. The only current exception is that the byte that would correspond to `POPk` (0x83) is instead used for `RTI` (see section 3.6).
 
-- `POP`: Remove the top value from the stack.
+- `POP`: Remove the top value from the stack.  
     `a b c -- a b`
-- `SWP`: Swap the top two values of the stack.
+- `SWP`: Swap the top two values of the stack.  
     `a b c -- a c b`
-- `ROT`: Swap the second and third items of the stack.
+- `ROT`: Swap the second and third items of the stack.  
     `a b c -- b a c`
-- `DUP`: Duplicate the top item of the stack.
+- `DUP`: Duplicate the top item of the stack.  
     `a b c -- a b c c`
-- `OVR`: Take the second item of the stack and push it to the top.
+- `OVR`: Take the second item of the stack and push it to the top.  
     `a b c -- a b c b`
 
 ### 3.2: Logic and jumps
 
 - `EQU`: Compare the top two values of the stack for equality. If they are equal, push true (0xff). If they are not, push false (0x00).
-- `GTH`: Pop b and a. If a is greater than b, push true. Otherwise, push false. This opcode MUST compare signed values.
+- `GTH`: Pop b and a. If a is greater than b, push true. Otherwise, push false. This opcode MUST compare signed values.  
     `01 02 -- 00` (this runs `01 > 02`)
 - `JMP`: Pop an address from the stack. In double width mode, the address is a 16-bit absolute address. Jump to it. Otherwise, it is a single signed byte representing an offset from the current program counter. Change the program counter by that amount.
 - `JNZ`: Identical to JMP, except that after the address is popped before the jump, another value will be popped. This value MUST always be 8 bits. If the value is not zero, jump. Otherwise, resume execution.
@@ -88,11 +92,12 @@ If the keep mode bit is set on a stack primitive, it becomes a NOP. The byte tha
 
 ### 3.5: Literals
 
-The `LIT` opcode occupies the keep mode of the null byte (if that makes any sense). It takes the next byte (or 16-bit word in 16-bit mode) and pushes it to the stack.
+The `LIT` opcode occupies the keep mode of the null byte (if that makes any sense). It takes the next byte (or 16-bit word in 16-bit mode) relative to the program counter and pushes it to the stack. It then increments the program counter such that the bytes it just pushed will not be executed.
 
 ### 3.6: Odds and ends
 
 `SEC` and `CLC` are used to set and clear the carry flag, respectively. `RTI` pops a value from the stack and places it in the status register, then pops a 16-bit word from the return stack and jumps to it. This is used to return from device interrupts. `EXT` pushes 0 to the stack. This will later be used to determine what processor instruction set extensions are enabled. None of these have any modes available. 
+A value of 0 MUST be a no-op. All other values are undefined.
 
 ## 4: Device I/O
 
@@ -102,21 +107,29 @@ Devices MAY use multi-byte ports. Devices MAY modify their internal state on rea
 
 ### 4.1: The system device
 
-This device is used to allow the processor to control itself, and to perform a few functions impossible with pure code. The device MUST buffer terminal input such that reads of STDIN are non-blocking. The device SHOULD NOT have local terminal echo.
+This device is used to allow the processor to control itself, and to perform a few functions impossible with pure CPU instructions. The device MUST buffer terminal input such that reads of STDIN are non-blocking. The device SHOULD NOT have local terminal echo.
 
 |Port|Function|
 |---|---|
 |0 DEVID|Returns 1 when read|
 |1 WAIT|When written to, suspend the CPU for that number of ms|
-|2 RANDOM|When read, returns a random number in the range [0, 256). The generator does not need to be cryptographically secure|
+|2 RANDOM|When read, returns a random number in the range [0, 256). The generator does not need to be cryptographically secure, but it SHOULD be sufficiently non-deterministic to make a dice program (say)|
 |8 STDIN|When read, returns a byte from the terminal input, or 0x00 if no bytes are present in the buffer|
 |9 STDOUT|When written to, send a byte to the standard output terminal|
 |a STDERR|When written to, send a byte to the standard error terminal. This MAY be the same as the standard output|
 |b BUFLEN|When read, returns the size of the input buffer, or 0xff if the length of the buffer is greater than 0xff|
 |f HALT|When written to, immediately halt the CPU|
 
-## Conventions
+## 5: Conventions and caveats
 
-## Assembled ROM format
+### 5.1: Assembled ROM format
 
 The first 4 bytes of the rom are the magic number. Version 1 ROMs have the magic number `41 56 43 00` (hex). Any file without this header is an invalid Version 1 ROM.
+
+### 5.2: Jumping
+
+At the end of every fetch-decode-execute cycle, the program counter MUST be incremented by 1. This means that if you wish to execute the byte at 0x0303 (for example), you will need to jump the processor to 0x0302.
+
+### 5.3: Data structures
+
+Boolean values are zero for false and any non-zero value for true. The CPU's EQU and GTH instructions return 0xff for true. Strings should be stored on the heap and referred to with a fat pointer on the stack. Null-terminated strings SHOULD NOT be used.

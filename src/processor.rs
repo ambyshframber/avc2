@@ -41,7 +41,7 @@ impl Processor {
         let d = instr & 0x20 != 0; // double width
         let op = instr & 0b11111;
 
-        if instr == 0xff {
+        if instr == 0xef {
             panic!("emergency debug exit")
         }
 

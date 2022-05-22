@@ -34,6 +34,7 @@ impl System {
         self.lfsr ^= self.lfsr >> 7;
         self.lfsr ^= self.lfsr << 9;
         self.lfsr ^= self.lfsr >> 13;
+        //println!("{}", self.lfsr)
     }
 }
 

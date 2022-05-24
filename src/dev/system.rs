@@ -1,24 +1,29 @@
 #[allow(unused_imports)]
-use std::io::{Read, Write, stdout, stderr, Stdout, Stderr};
-use super::Device;
+use std::io::{Read, Write, stdout, stderr, Stdout, Stderr, stdin, Stdin};
+use super::{Device, WriteResponse};
 use rand::{thread_rng, Rng};
+use termion::{AsyncReader, async_stdin, raw::{IntoRawMode, RawTerminal}};
+use std::thread::sleep;
+use std::time::Duration;
 
 /// SYSTEM DEVICE
 /// 
-/// idx type use  
-/// 0   r    devid, returns 1 
-/// 1   w    wait, wait x ms
-/// 2   r    random, random in range [0, 256)
-/// 8   r    stdin
-/// 9   w    stdout
-/// a   w    stderr
-/// b   r    buf, returns amount of bytes in buffer (unsigned), 255 if over 255
-/// f   w    halt
+/// idx typ use  
+/// 0   r   devid, returns 1 
+/// 1   w   wait, wait x ms
+/// 2   r   random, random in range [0, 256)
+/// 8   r   stdin
+/// 9   w   stdout
+/// a   w   stderr
+/// b   r   buf, returns amount of bytes in buffer (unsigned), 255 if over 255
+/// f   w   halt
 /// 
 pub struct System {
     lfsr: u16,
-    stdout: Stdout,
-    stderr: Stderr
+    stdout: RawTerminal<Stdout>,
+    stderr: Stderr,
+    stdin: AsyncReader,
+    buf: Vec<u8>
 }
 
 impl System {
@@ -26,8 +31,10 @@ impl System {
         let lfsr = thread_rng().gen_range(1..65535);
         System {
             lfsr,
-            stdout: stdout(),
-            stderr: stderr()
+            stdout: stdout().into_raw_mode().unwrap(),
+            stderr: stderr(),
+            stdin: async_stdin(),
+            buf: Vec::new()
         }
     }
     fn advance_lfsr(&mut self) {
@@ -36,12 +43,19 @@ impl System {
         self.lfsr ^= self.lfsr >> 13;
         //println!("{}", self.lfsr)
     }
+    fn update_buf(&mut self) {
+        self.stdin.read_to_end(&mut self.buf).unwrap();
+    }
 }
 
 impl Device for System {
-    fn write(&mut self, addr: u8, val: u8) {
+    fn write(&mut self, addr: u8, val: u8) -> WriteResponse {
         self.advance_lfsr();
         match addr {
+            1 => {
+                let d = Duration::from_millis(val as u64);
+                sleep(d)
+            }
             9 => {
                 self.stdout.write(&[val]).unwrap();
                 self.stdout.flush().unwrap();
@@ -50,8 +64,13 @@ impl Device for System {
                 self.stderr.write(&[val]).unwrap();
                 self.stderr.flush().unwrap();
             }
-            0xf => std::process::exit(0), // halt (lol)
             _ => {}
+        }
+        if addr == 0x0f {
+            WriteResponse::Shutdown(val)
+        }
+        else {
+            WriteResponse::None
         }
     }
     fn read(&mut self, addr: u8) -> u8 {
@@ -59,8 +78,29 @@ impl Device for System {
         match addr {
             0 => 1, // devid
             2 => self.lfsr.to_be_bytes()[0], // random
+            8 => {
+                self.update_buf();
+                if self.buf.len() == 0 {
+                    0
+                }
+                else {
+                    self.buf.remove(0)
+                }
+            }
+            0xb => {
+                self.update_buf();
+                if self.buf.len() > 255 {
+                    255
+                }
+                else {
+                    self.buf.len() as u8
+                }
+            }
             _ => 0
         }
+    }
+    fn shutdown(&mut self) {
+        self.stdout.suspend_raw_mode().unwrap()
     }
 }
 
@@ -69,11 +109,6 @@ mod tests {
     use super::*;
     #[test]
     fn test_write() {
-        let mut sys = System::new();
-        println!("{}", sys.read(0x2));
-        sys.write(0x9, 0x69);
-        sys.write(0x9, 0xa);
-        println!("{}", sys.read(0x2));
     }
     #[test]
     fn test_random() {

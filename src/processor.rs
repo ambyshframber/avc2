@@ -1,6 +1,7 @@
 use wrapping_arithmetic::wrappit;
 
 use crate::memory::Mem;
+use crate::utils::Avc2Error;
 
 const WST_START: u16 = 0x0100;
 const RST_START: u16 = 0x0200;
@@ -16,13 +17,13 @@ pub struct Processor {
 }
 
 impl Processor {
-    pub fn new(rom: &[u8]) -> Processor {
-        let mem = Mem::new_from_rom(rom);
-        Processor {
+    pub fn new(rom: &[u8]) -> Result<Processor, Avc2Error> {
+        let mem = Mem::new_from_rom(rom)?;
+        Ok(Processor {
             mem,
             wsp: 0xff, rsp: 0xff, st: 0,
             pc: 0x0300,
-        }
+        })
     }
 
     pub fn execute_once(&mut self) {
@@ -32,8 +33,8 @@ impl Processor {
 
     #[wrappit]
     fn execute(&mut self, instr: u8) {
-        //eprintln!("PC AT {:04x}", self.pc);
-        //eprintln!("EXEC {:02x}", instr);
+        //eprintln!("PC AT {:04x}\r", self.pc);
+        //eprintln!("EXEC {:02x}\r", instr);
         //eprintln!("WSP AT {:04x}", (self.wsp as u16) + WST_START);
         //println!("RSP AT {:04x}", self.rsp);
         let k = instr & 0x80 != 0; // keep
@@ -214,7 +215,7 @@ impl Processor {
                             else {
                                 self.pop(r)
                             };
-                            //eprintln!("JNZ {:02x}", cond);
+                            //eprintln!("JNZ {:02x}\r", cond);
                             cond != 0 // jump not zero
                         }
                         _  => true
@@ -475,7 +476,7 @@ impl Processor {
 
     #[wrappit]
     fn push(&mut self, val: u8, is_rst: bool) {
-        //println!("PUSHING {:02x}", val);
+        //println!("PUSHING {:02x}\r", val);
         let idx = if is_rst {
             let idx = (self.rsp as u16) + RST_START;
             self.rsp -= 1;

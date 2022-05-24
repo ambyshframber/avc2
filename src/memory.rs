@@ -1,6 +1,7 @@
 use wrapping_arithmetic::wrappit;
 
 use crate::dev::DevicePage;
+use crate::utils::Avc2Error;
 
 const MEM_SIZE: u16 = 0xFF00;
 
@@ -10,20 +11,16 @@ pub struct Mem {
 }
 
 impl Mem {
-    #[allow(dead_code)]
-    pub fn new() -> Mem {
-        Self::new_from_rom(&[0; MEM_SIZE as usize])
-    }
     /// program start is 0x0300
-    pub fn new_from_rom(rom: &[u8]) -> Mem {
+    pub fn new_from_rom(rom: &[u8]) -> Result<Mem, Avc2Error> {
         let mut main = [0; MEM_SIZE as usize];
         for (i, byte) in rom.iter().enumerate() {
             main[i + 0x0300] = *byte
         }
-        Mem {
+        Ok(Mem {
             main,
-            devices: DevicePage::new(Vec::new())
-        }
+            devices: DevicePage::new(Vec::new())?
+        })
     }
 
     pub fn get(&mut self, idx: u16) -> u8 {
@@ -34,13 +31,29 @@ impl Mem {
             self.devices.read(idx as u8)
         }
     }
+    #[wrappit]
     pub fn set(&mut self, idx: u16, val: u8) {
-        //eprintln!("CELL {:04x} SET TO {:02x}", idx, val);
+        //eprintln!("CELL {:04x} SET TO {:02x}\r", idx, val);
         if idx < MEM_SIZE {
             self.main[idx as usize] = val
         }
         else { // devices
-            self.devices.write(idx as u8, val)
+            match self.devices.write(idx as u8, val) {
+                Some(DmaRequest::ToDev{addr, len}) => {
+                    let mut ret = Vec::new();
+                    for i in 0..len {
+                        ret.push(self.get(i + addr))
+                    }
+                    self.devices.dma_callback(ret)
+                }
+                Some(DmaRequest::ToMem{addr, data}) => {
+                    //eprintln!("DMACTL TOMEM\r");
+                    for (i, b) in data.iter().enumerate() {
+                        self.set((i as u16)+ addr, *b)
+                    }
+                }
+                _ => {}
+            }
         }
     }
 
@@ -56,4 +69,9 @@ impl Mem {
         self.set(idx, hb);
         self.set(idx + 1, lb)
     }
+}
+
+pub enum DmaRequest {
+    ToMem{addr: u16, data: Vec<u8>},
+    ToDev{addr: u16, len: u16}
 }

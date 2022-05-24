@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 wrapping_arithmetic = "0.1.0"
 rand = "0.8.5"
+termion = "1.5.6"
+avdrive = { git = "https://github.com/ambyshframber/avd" }
+thiserror = "1.0.31"

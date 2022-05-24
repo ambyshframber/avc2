@@ -105,6 +105,8 @@ Memory-mapped I/O takes place in the top page of memory. Each device has 16 byte
 
 Devices MAY use multi-byte ports. Devices MAY modify their internal state on read. If a cell in the device page is read, but no device is using it for a port, it MUST return 0.
 
+As of revsion 1.1, devices MAY perform Direct Memory Access (DMA).
+
 ### 4.1: The system device
 
 This device is used to allow the processor to control itself, and to perform a few functions impossible with pure CPU instructions. The device MUST buffer terminal input such that reads of STDIN are non-blocking. The device SHOULD NOT have local terminal echo.
@@ -119,6 +121,10 @@ This device is used to allow the processor to control itself, and to perform a f
 |a STDERR|When written to, send a byte to the standard error terminal. This MAY be the same as the standard output|
 |b BUFLEN|When read, returns the size of the input buffer, or 0xff if the length of the buffer is greater than 0xff|
 |f HALT|When written to, immediately halt the CPU|
+
+### 4.2: The drive device 
+
+This device is an emulation of a 16mb block-based drive. Blocks are 256 bytes long (the same as )
 
 ## 5: Conventions and caveats
 

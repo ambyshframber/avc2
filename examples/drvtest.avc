@@ -1,0 +1,5 @@
+LIT2 .hex(04) .hex(d2) LIT2 .hex(ff) .hex(12) STA2 \ block
+LIT .hex(80) LIT2 .hex(ff) .hex(14) STA \ page
+LIT .hex(01) LIT2 .hex(ff) .hex(18) STA \ read
+LIT2 .hex(80) .hex(68) LDA LIT2 .hex(ff) .hex(09) STA \ get h and print
+LIT .hex(00) LIT2 .hex(ff) .hex(0f) STA \ exit

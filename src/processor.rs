@@ -2,6 +2,7 @@ use wrapping_arithmetic::wrappit;
 
 use crate::memory::Mem;
 use crate::utils::Avc2Error;
+use crate::dev::DevSpec;
 
 const WST_START: u16 = 0x0100;
 const RST_START: u16 = 0x0200;
@@ -17,8 +18,8 @@ pub struct Processor {
 }
 
 impl Processor {
-    pub fn new(rom: &[u8]) -> Result<Processor, Avc2Error> {
-        let mem = Mem::new_from_rom(rom)?;
+    pub fn new(rom: &[u8], devs: Vec<DevSpec>) -> Result<Processor, Avc2Error> {
+        let mem = Mem::new_from_rom(rom, devs)?;
         Ok(Processor {
             mem,
             wsp: 0xff, rsp: 0xff, st: 0,

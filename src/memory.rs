@@ -1,6 +1,6 @@
 use wrapping_arithmetic::wrappit;
 
-use crate::dev::DevicePage;
+use crate::dev::{DevicePage, DevSpec};
 use crate::utils::Avc2Error;
 
 const MEM_SIZE: u16 = 0xFF00;
@@ -12,14 +12,14 @@ pub struct Mem {
 
 impl Mem {
     /// program start is 0x0300
-    pub fn new_from_rom(rom: &[u8]) -> Result<Mem, Avc2Error> {
+    pub fn new_from_rom(rom: &[u8], devs: Vec<DevSpec>) -> Result<Mem, Avc2Error> {
         let mut main = [0; MEM_SIZE as usize];
         for (i, byte) in rom.iter().enumerate() {
             main[i + 0x0300] = *byte
         }
         Ok(Mem {
             main,
-            devices: DevicePage::new(Vec::new())?
+            devices: DevicePage::new(devs)?
         })
     }
 

@@ -4,7 +4,11 @@ use avdrive::AvdError;
 #[derive(Error, Debug)]
 pub enum Avc2Error {
     #[error("drive init error")]
-    DriveError(#[from] AvdError)
+    DriveError(#[from] AvdError),
+    #[error("device init error: {0}")]
+    DevInitError(String),
+    #[error("bad device spec: {0}")]
+    BadDevSpec(String)
 }
 
 pub fn set_hb(main: u16, hb: u8) -> u16 {

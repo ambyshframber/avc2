@@ -124,13 +124,26 @@ This device is used to allow the processor to control itself, and to perform a f
 
 ### 4.2: The drive device 
 
-This device is an emulation of a 16mb block-based drive. Blocks are 256 bytes long (the same as )
+This device is an emulation of a 16mb block-based drive. Blocks are 256 bytes long (the same as a page of memory). There are 65536 blocks.
+
+When a block is read, it is placed in an entire page. When written, an entire page is placed into the block.
+
+|Port|Function|
+|---|---|
+|0 DEVID|Returns 2|
+|2 BLKHB|When written to, set the hibyte of the block address|
+|3 BLKLB|When written to, set the lobyte of the block address|
+|4 PAGE|Set the page of memory to use|
+|8 READ|Move the specified block of the drive into memory, at the specified page|
+|9 WRITE|Move the specified page of memory into the drive, at the specified block|
+
+The drive SHOULD be saved to a file on the host machine when the emulator is shut down. The drive archive format starts with `41 56 44 00` (hex), and proceeds in blocks of 258 bytes. The first 2 bytes of a block are the block number within the drive (in big-endian representation), and the remaining 256 are the contents of the block. Any blocks not given in the archive are assumed to be empty. This choice was made to keep the size of drive archives down and make it easier to compress the data at runtime and reduce memory usage.
 
 ## 5: Conventions and caveats
 
 ### 5.1: Assembled ROM format
 
-The first 4 bytes of the rom are the magic number. Version 1 ROMs have the magic number `41 56 43 00` (hex). Any file without this header is an invalid Version 1 ROM.
+The first 4 bytes of the rom are the magic number. Version 1 ROMs have the magic number `41 56 43 00` (hex). Any file without this header is an invalid Version 1 ROM. The remainder of the rom is the program data, and MUST be loaded in with the first byte at the program start point.
 
 ### 5.2: Jumping
 

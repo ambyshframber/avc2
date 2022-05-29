@@ -13,10 +13,29 @@ pub struct DevicePage {
 
 impl DevicePage {
     #[allow(unused_variables)]
-    pub fn new(devs_to_use: Vec<(u8, u8, &str)>) -> Result<DevicePage, Avc2Error> {
-        let mut devs:[Option<Box<dyn Device>>; 16]  = [0; 16].map(|_| None);
+    pub fn new(devs_to_use: Vec<DevSpec>) -> Result<DevicePage, Avc2Error> {
+        let mut devs: [Option<Box<dyn Device>>; 16] = [0; 16].map(|_| None);
         devs[0] = Some(Box::new(System::new()));
-        devs[1] = Some(Box::new(Drive::new("test.avd")?));
+        for spec in devs_to_use {
+            if spec.loc == 0 {
+                return Err(Avc2Error::DevInitError(String::from("dev 0 must be system")))
+            }
+            if spec.loc >= 16 {
+                return Err(Avc2Error::DevInitError(String::from("device locations greater than 15 are invalid")))
+            }
+            match spec.id {
+                1 => return Err(Avc2Error::DevInitError(String::from("only one system device may exist"))),
+                2 => { // drive
+                    let l = spec.options.len();
+                    if l != 1 {
+                        return Err(Avc2Error::DevInitError(format!("wrong # of options for drive device (expected 1, got {})", l)))
+                    }
+                    let d = Drive::new(spec.options[0])?;
+                    devs[spec.loc] = Some(Box::new(d));
+                }
+                _ => return Err(Avc2Error::DevInitError(format!("unrecognised devid {}", spec.id)))
+            }
+        }
 
         Ok(DevicePage {
             devs,
@@ -76,9 +95,30 @@ trait Device {
     fn shutdown(&mut self) {}
     fn dma_callback(&mut self, _data: Vec<u8>) {}
 }
+
 pub enum WriteResponse {
     None,
     Shutdown(u8),
     DmaToMem{addr: u16, data: Vec<u8>},
     DmaToDev{addr: u16, len: u16}
+}
+pub struct DevSpec<'a> {
+    loc: usize,
+    id: u8,
+    options: Vec<&'a str>
+}
+impl DevSpec<'_> {
+    pub fn new(loc: usize, id: u8, opt_string: &str) -> DevSpec {
+        let options = opt_string.split(';').collect();
+        DevSpec {
+            loc, id, options
+        }
+    }
+    pub fn from_str(s: &str) -> Result<DevSpec, Avc2Error> {
+        let (locs, rest) = s.split_once(';').ok_or(Avc2Error::BadDevSpec(String::from(s)))?;
+        let (ids, opts) = rest.split_once(';').ok_or(Avc2Error::BadDevSpec(String::from(s)))?;
+        let loc = locs.parse().map_err(|_| Avc2Error::BadDevSpec(String::from(s)))?;
+        let id = ids.parse().map_err(|_| Avc2Error::BadDevSpec(String::from(s)))?;
+        Ok(DevSpec::new(loc, id, opts))
+    }
 }

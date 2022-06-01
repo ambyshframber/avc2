@@ -1,0 +1,10 @@
+\ this file demonstrates the bootstrap system
+
+LIT .x(03) LIT2 .x(ff) .x(14) STA \ select page
+LIT2 .x(00) .x(00) LIT2 .x(ff) .x(12) STA2 \ select block
+\ now here comes the spicy bit
+LIT .x(00) LIT2 .x(ff) .x(18) \ prime for read, but don't execute
+LITr .x(15) \ STA on return stack \ POPr \ return the stack pointer to 0x02ff
+LIT2 .x(02) .x(fe) JMP2 \ jump to top of return stack, hence executing 0x15
+\ this should load block zero of the drive into memory at 0x0300
+\ giving you the usual exec start but taking code from an attached drive

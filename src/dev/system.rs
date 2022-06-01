@@ -2,7 +2,7 @@
 use std::io::{Read, Write, stdout, stderr, Stdout, Stderr, stdin, Stdin};
 use super::{Device, WriteResponse};
 use rand::{thread_rng, Rng};
-use termion::{AsyncReader, async_stdin, raw::{IntoRawMode, RawTerminal}};
+use termion::{AsyncReader, async_stdin, /*raw::{IntoRawMode, RawTerminal}*/};
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -20,7 +20,7 @@ use std::time::Duration;
 /// 
 pub struct System {
     lfsr: u16,
-    stdout: RawTerminal<Stdout>,
+    stdout: Stdout,
     stderr: Stderr,
     stdin: AsyncReader,
     buf: Vec<u8>
@@ -31,7 +31,7 @@ impl System {
         let lfsr = thread_rng().gen_range(1..65535);
         System {
             lfsr,
-            stdout: stdout().into_raw_mode().unwrap(),
+            stdout: stdout(),
             stderr: stderr(),
             stdin: async_stdin(),
             buf: Vec::new()
@@ -100,7 +100,7 @@ impl Device for System {
         }
     }
     fn shutdown(&mut self) {
-        self.stdout.suspend_raw_mode().unwrap()
+        //self.stdout.suspend_raw_mode().unwrap()
     }
 }
 

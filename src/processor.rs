@@ -197,7 +197,7 @@ impl Processor {
                     }
                     
                     if will_jump {
-                        self.pc = addr
+                        self.pc = addr - 1
                     }
                 }
                 else { // rel jumps
@@ -228,7 +228,7 @@ impl Processor {
                     let dest = self.get_pc_offset(ofs); 
                     if will_jump {
                         //eprintln!("JUMPING TO {:04x}", dest);
-                        self.pc = dest
+                        self.pc = dest - 1
                     }
                 }
             }

@@ -85,7 +85,7 @@ impl DevicePage {
 
 /// DEVICE PORT STRUCTURE
 /// 
-/// byte zero is the device id. this is a unique value in the range [2, 240]
+/// byte zero is the device id. this is a unique value in the range [1, 240]
 /// used by no other device spec
 /// 
 /// all other bytes can be used however you like

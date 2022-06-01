@@ -1,8 +1,0 @@
-\ this file compiles to `drvtest.avcr`. run it with `avc2 -d "1;2;test.avd" drvtest.avcr` and it should print `h` to the terminal.
-\ `test.avd` can be found in this folder. it contains 1 block, at 0x04d2 (1234 in decimal), which contains all the numbers from 0 to 255, in order
-
-LIT2 .hex(04) .hex(d2) LIT2 .hex(ff) .hex(12) STA2 \ specify the block we want (0x04d2)
-LIT .hex(80) LIT2 .hex(ff) .hex(14) STA \ specify the page we want to read into (0x80)
-LIT .hex(01) LIT2 .hex(ff) .hex(18) STA \ read
-LIT2 .hex(80) .hex(68) LDA LIT2 .hex(ff) .hex(09) STA \ get h and print
-LIT .hex(00) LIT2 .hex(ff) .hex(0f) STA \ exit

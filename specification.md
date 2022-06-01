@@ -17,7 +17,7 @@ AVC2 is a stack-based system. It possesses 4 registers, although none are availa
 - `st`: STatus
 - `pc`: Program Counter
 
-The two stack pointers correspond to two stacks in memory. The working stack SHOULD be located in the 0x0100 - 0x01ff page, and the return stack SHOULD be located in the 0x0200 - 0x02ff page. Both stacks MUST grow downwards. The 0x0000 - 0x00ff page is the zero page. The 0xff00 - 0xffff page is dedicated to memory-mapped device I/O. The CPU MUST jump to the program start point (which SHOULD be 0x0300) upon starting.
+The two stack pointers correspond to two stacks in memory. They both point to the next unused slot, ie. pushing a value will write to the location they point to and then decrement them. The working stack MUST be located in the 0x0100 - 0x01ff page, and the return stack MUST be located in the 0x0200 - 0x02ff page. Both stacks MUST grow downwards. The 0x0000 - 0x00ff page is the zero page. The 0xff00 - 0xffff page is dedicated to memory-mapped device I/O. The CPU MUST jump to the program start point (0x0300) upon starting.
 
 The status of uninitialised memory is undefined.
 
@@ -65,7 +65,7 @@ If the keep mode bit is set on a stack primitive, the behaviour is undefined. Th
     `01 02 -- 00` (this runs `01 > 02`)
 - `JMP`: Pop an address from the stack. In double width mode, the address is a 16-bit absolute address. Jump to it. Otherwise, it is a single signed byte representing an offset from the current program counter. Change the program counter by that amount.
 - `JNZ`: Identical to JMP, except that after the address is popped before the jump, another value will be popped. This value MUST always be 8 bits. If the value is not zero, jump. Otherwise, resume execution.
-- `JSR`: Identical to JMP, except that before jumping, the` value of the program counter is pushed to the return stack.
+- `JSR`: Identical to JMP, except that before jumping, the value of the program counter is pushed to the return stack.
 - `STH`: Move a value from the working stack to the return stack. Does the inverse in return mode.
 
 ### 3.3: Memory accesses
@@ -88,7 +88,7 @@ If the keep mode bit is set on a stack primitive, the behaviour is undefined. Th
 - `AND`: Pop a and b. Push a & b.
 - `IOR`: Pop a and b. Push a | b.
 - `XOR`: Pop a and b. Push a ^ b.
-- `SFT`: Pop a value from the stack. The upper nybble is the shift left, and the lower nybble is the shift right. Pop another value and bitshift it by those amounts, shifting left first.
+- `SFT`: Pop an 8-bit value from the stack. The upper nybble is the shift left, and the lower nybble is the shift right. Pop another value and bitshift it by those amounts, shifting left first.
 
 ### 3.5: Literals
 
@@ -96,16 +96,16 @@ The `LIT` opcode occupies the keep mode of the null byte (if that makes any sens
 
 ### 3.6: Odds and ends
 
-`SEC` and `CLC` are used to set and clear the carry flag, respectively. `RTI` pops a value from the stack and places it in the status register, then pops a 16-bit word from the return stack and jumps to it. This is used to return from device interrupts. `EXT` pushes 0 to the stack. This will later be used to determine what processor instruction set extensions are enabled. None of these have any modes available. 
+`SEC` and `CLC` are used to set and clear the carry flag, respectively. `RTI` pops a value from the stack and places it in the status register, then pops a 16-bit word from the return stack and jumps to it. This is used to return from device interrupts. `EXT` pushes 0 to the stack. This will later be used to determine what processor instruction set extensions are enabled. None of these have any modes available.  
 A value of 0 MUST be a no-op. All other values are undefined.
 
 ## 4: Device I/O
 
-Memory-mapped I/O takes place in the top page of memory. Each device has 16 bytes of I/O space. The first byte MUST return the device ID, a value in the range [1, 240] that corresponds to the device type, when read. The first device (in the range 0xff00 - 0xff0f) MUST be the system device, defined below. Currently only one device is defined (the system device).
+Memory-mapped I/O takes place in the top page of memory. Each device has 16 bytes of I/O space. The first byte MUST return the device ID, a value in the range [1, 240] that corresponds to the device type, when read. The first device (in the range 0xff00 - 0xff0f) MUST be the system device, defined below.
 
 Devices MAY use multi-byte ports. Devices MAY modify their internal state on read. If a cell in the device page is read, but no device is using it for a port, it MUST return 0.
 
-As of revsion 1.1, devices MAY perform Direct Memory Access (DMA).
+As of revision 1.1, devices MAY perform Direct Memory Access (DMA).
 
 ### 4.1: The system device
 
@@ -133,9 +133,9 @@ When a block is read, it is placed in an entire page. When written, an entire pa
 |0 DEVID|Returns 2|
 |2 BLKHB|When written to, set the hibyte of the block address|
 |3 BLKLB|When written to, set the lobyte of the block address|
-|4 PAGE|Set the page of memory to use|
-|8 READ|Move the specified block of the drive into memory, at the specified page|
-|9 WRITE|Move the specified page of memory into the drive, at the specified block|
+|4 PAGE|When written to, set the page of memory to use|
+|8 READ|When written to, move the specified block of the drive into memory, at the specified page|
+|9 WRITE|When written to, move the specified page of memory into the drive, at the specified block|
 
 The drive SHOULD be saved to a file on the host machine when the emulator is shut down. The drive archive format starts with `41 56 44 00` (hex), and proceeds in blocks of 258 bytes. The first 2 bytes of a block are the block number within the drive (in big-endian representation), and the remaining 256 are the contents of the block. Any blocks not given in the archive are assumed to be empty. This choice was made to keep the size of drive archives down and make it easier to compress the data at runtime and reduce memory usage.
 
@@ -147,7 +147,7 @@ The first 4 bytes of the rom are the magic number. Version 1 ROMs have the magic
 
 ### 5.2: Jumping
 
-At the end of every fetch-decode-execute cycle, the program counter MUST be incremented by 1. This means that if you wish to execute the byte at 0x0303 (for example), you will need to jump the processor to 0x0302.
+When jumping to an address, the next byte to be executed must be the byte at that address, not the next address.
 
 ### 5.3: Data structures
 

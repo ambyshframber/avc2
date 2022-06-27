@@ -101,9 +101,9 @@ A value of 0 MUST be a no-op. All other values are undefined.
 
 ## 4: Device I/O
 
-Memory-mapped I/O takes place in the top page of memory. Each device has 16 bytes of I/O space. The first byte MUST return the device ID, a value in the range [1, 240] that corresponds to the device type, when read. The first device (in the range 0xff00 - 0xff0f) MUST be the system device, defined below.
+Memory-mapped I/O takes place in the top page of memory. Each device has 16 bytes of I/O space. The first byte (the DEVID port) MUST return the device ID, a value in the range [1, 240] that corresponds to the device type, when read. The first device (in the range 0xff00 - 0xff0f) MUST be the system device, defined below.
 
-Devices MAY use multi-byte ports. Devices MAY modify their internal state on read. If a cell in the device page is read, but no device is using it for a port, it MUST return 0.
+Devices MAY use multi-byte ports. Devices MAY modify their internal state on read. If a cell in the device page is read, but no device is using it for a port, the return value MUST be 0 if it would be a DEVID port, and is undefined otherwise.
 
 As of revision 1.1, devices MAY perform Direct Memory Access (DMA).
 

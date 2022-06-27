@@ -260,6 +260,7 @@ impl Processor {
                             self.get_pc_offset(ofs)
                         }
                         _ => { // absolute
+                            is_abs = true;
                             self.pick_16(0, r)
                         }
                     }
@@ -272,7 +273,7 @@ impl Processor {
                     if d {
                         //eprintln!("LOAD {:04x}", v);
                         self.push(lb, r); // lb
-                        self.pc += 1
+                        //self.pc += 1
                     }
                     else {
                         //eprintln!("LOAD {:02x}", hb)
@@ -349,6 +350,7 @@ impl Processor {
                     };
                     let x = match op {
                         0x18 => { // ADC
+                            //eprintln!("ADC2 {:04x} {:04x}\r", a, b);
                             let c = self.st & 1; // get carry flag
                             let x = a + b;
                             if a > x { // test for overflow

@@ -69,18 +69,24 @@ for i in range(0x100):
     else:
         table.append(" " * 8)
 
-print("  ", end="")
-for i in range(16):
-    print(f"{i:x}" + " " * 7, end="")
+if False:
+    print("  ", end="")
+    for i in range(16):
+        print(f"{i:x}" + " " * 7, end="")
 
-print("")
-
-for i in range(16):
-    print(f"{i:x} ", end="")
-    high_nyb = i << 4
-    for j in range(16):
-        idx = high_nyb | j
-        op = table[idx]
-        print(op, end="")
     print("")
 
+    for i in range(16):
+        print(f"{i:x} ", end="")
+        high_nyb = i << 4
+        for j in range(16):
+            idx = high_nyb | j
+            op = table[idx]
+            print(op, end="")
+        print("")
+else:
+    table2 = []
+    for i in table:
+        table2.append(i.strip())
+    
+    print(table2)

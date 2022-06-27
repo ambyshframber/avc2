@@ -1,6 +1,6 @@
 # avc2
 
-This repository contains 2 things: avc2, the reference implementation of the AVC2 virtual CPU; and the version 1 specification for the CPU. This file is the documentation for avc2, not the specification, however it makes frequent reference to it. The specification can be found in `specification.md`. 
+This repository contains 2 things: avc2, the reference implementation of the AVC2 Virtual CPU; and the version 1 specification for the CPU. This file is the documentation for avc2, not the specification, however it makes frequent reference to it. The specification can be found in `specification.md`. 
 
 ## Invoking avc2
 

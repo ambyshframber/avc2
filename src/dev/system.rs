@@ -1,7 +1,8 @@
 #[allow(unused_imports)]
 use std::io::{Read, Write, stdout, stderr, Stdout, Stderr, stdin, Stdin};
 use super::{Device, WriteResponse};
-use rand::{thread_rng, Rng};
+//use rand::{thread_rng, Rng};
+use std::time::SystemTime;
 use termion::{AsyncReader, async_stdin, /*raw::{IntoRawMode, RawTerminal}*/};
 use std::thread::sleep;
 use std::time::Duration;
@@ -28,7 +29,9 @@ pub struct System {
 
 impl System {
     pub fn new() -> Self { 
-        let lfsr = thread_rng().gen_range(1..65535);
+        let time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
+        let mut lfsr = time.as_millis() as u16;
+        if lfsr == 0 { lfsr = 1 }
         System {
             lfsr,
             stdout: stdout(),

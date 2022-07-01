@@ -65,7 +65,7 @@ If the keep mode bit is set on a stack primitive, the behaviour is undefined. Th
     `01 02 -- 00` (this runs `01 > 02`)
 - `JMP`: Pop an address from the stack. In double width mode, the address is a 16-bit absolute address. Jump to it. Otherwise, it is a single signed byte representing an offset from the current program counter. Change the program counter by that amount.
 - `JNZ`: Identical to JMP, except that after the address is popped before the jump, another value will be popped. This value MUST always be 8 bits. If the value is not zero, jump. Otherwise, resume execution.
-- `JSR`: Identical to JMP, except that before jumping, the value of the program counter is pushed to the return stack.
+- `JSR`: Identical to JMP, except that before jumping, the value of the program counter + 1 is pushed to the return stack.
 - `STH`: Move a value from the working stack to the return stack. Does the inverse in return mode.
 
 ### 3.3: Memory accesses

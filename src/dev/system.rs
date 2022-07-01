@@ -2,10 +2,9 @@
 use std::io::{Read, Write, stdout, stderr, Stdout, Stderr, stdin, Stdin};
 use super::{Device, WriteResponse};
 //use rand::{thread_rng, Rng};
-use std::time::SystemTime;
 use termion::{AsyncReader, async_stdin, /*raw::{IntoRawMode, RawTerminal}*/};
 use std::thread::sleep;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 /// SYSTEM DEVICE
 /// 

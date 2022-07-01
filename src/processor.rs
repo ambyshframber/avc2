@@ -193,7 +193,7 @@ impl Processor {
                         _  => true
                     };
                     if op == 0xc {
-                        self.push_16(self.pc, !r)
+                        self.push_16(self.pc + 1, !r)
                     }
                     
                     if will_jump {
@@ -222,7 +222,7 @@ impl Processor {
                         _  => true
                     };
                     if op == 0xc {
-                        self.push_16(self.pc, !r)
+                        self.push_16(self.pc + 1, !r)
                     }
                     
                     let dest = self.get_pc_offset(ofs); 

@@ -178,12 +178,17 @@ impl Processor {
 
             0xa..=0xc => { // jumps
                 if d {
-                    let addr = self.pop_16(r);
+                    let addr = if k {
+                        self.pick_16(0, r)
+                    }
+                    else {
+                        self.pop_16(r)
+                    };
                     
                     let will_jump = match op {
                         0xb => {
                             let cond = if k {
-                                self.pick(1, r)
+                                self.pick(2, r)
                             }
                             else {
                                 self.pop(r)

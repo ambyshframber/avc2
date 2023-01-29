@@ -150,10 +150,10 @@ impl Processor {
                         (a, b)
                     };
                     if op == 8 {
-                        self.push((a == b) as u8, r) 
+                        self.push(((a == b) as u8) * 0xff, r) 
                     }
                     else {
-                        self.push((a as i16 > b as i16) as u8, r) 
+                        self.push(((a as i16 > b as i16) as u8) * 0xff, r) 
                     }
                 }
                 else {
@@ -168,10 +168,10 @@ impl Processor {
                         (a, b)
                     };
                     if op == 8 {
-                        self.push((a == b) as u8, r) 
+                        self.push(((a == b) as u8) * 0xff, r) 
                     }
                     else {
-                        self.push((b as i8 > a as i8) as u8, r) 
+                        self.push(((b as i8 > a as i8) as u8) * 0xff, r) 
                     }
                 }
             }
